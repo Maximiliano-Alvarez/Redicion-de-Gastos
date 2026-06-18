@@ -1,5 +1,6 @@
 import csv
 import re
+import unicodedata
 
 # ============================================================
 #   FUNCIONES DE BASE DE DATOS
@@ -20,9 +21,27 @@ def guardar_datos(datos):
 #   FUNCIONES DE UTILIDAD
 # ============================================================
 
+def es_confirmacion(texto):
+    texto = limpiar_texto(texto)
+    confirmaciones = [
+        "si", "sí", "dale", "ok", "confirmo",
+        "sip", "si por favor", "si porfavor",
+        "por favor", "si dale", "si dale ok",
+        "si ok", "si, por favor"
+    ]
+    return texto in confirmaciones
+
+
 def limpiar_texto(texto):
     texto = texto.lower()
-    texto = re.sub(r"[^a-záéíóúñ0-9 ]", "", texto)
+
+    # Normalizar acentos: "á" → "a"
+    texto = unicodedata.normalize("NFD", texto)
+    texto = texto.encode("ascii", "ignore").decode("utf-8")
+
+    # Mantener solo letras, números y espacios
+    texto = re.sub(r"[^a-z0-9 ]", "", texto)
+
     return texto.strip()
 
 def detectar_intencion(texto):
@@ -78,11 +97,25 @@ def extraer_categoria(texto):
     return None
 
 def extraer_monto(texto):
-    # SOLO números, nada de palabras
-    numeros = re.findall(r"\d+\.?\d*", texto)
-    if numeros:
-        return float(numeros[0])
-    return None
+    # Buscar números con coma o punto
+    numeros = re.findall(r"\d[\d\.,]*", texto)
+
+    if not numeros:
+        return None
+
+    numero = numeros[0]
+
+    # Normalizar formato argentino:
+    # 1.500,75 → 1500.75
+    # 2.000 → 2000
+    # 1500,5 → 1500.5
+    numero = numero.replace(".", "")      # eliminar separador de miles
+    numero = numero.replace(",", ".")     # convertir coma decimal a punto
+
+    try:
+        return float(numero)
+    except:
+        return None
 
 # ============================================================
 #   FUNCIONES DE INTENCIÓN
@@ -134,9 +167,10 @@ def procesar_carga_gasto(mensaje, empleado, datos):
     if fondo_restante > 0:
         print(f"✔ {empleado['nombre']}, podés hacer este gasto.")
         print(f"💵 Si lo hacés, te van a quedar ${fondo_restante}.")
+        
         confirmar = input("🤖 ¿Querés confirmar el gasto? (si/no): ").lower()
 
-        if confirmar in ["si", "sí", "dale", "ok", "confirmo"]:
+        if es_confirmacion(confirmar):
             for emp in datos:
                 if emp["legajo"] == empleado["legajo"]:
                     emp[categoria] = str(fondo_restante)
@@ -149,9 +183,10 @@ def procesar_carga_gasto(mensaje, empleado, datos):
     # CASO 2 — Puede hacer el gasto pero queda en cero
     elif fondo_restante == 0:
         print(f"⚠ {empleado['nombre']}, podés hacer el gasto, pero te quedarías SIN fondos.")
+        
         confirmar = input("🤖 ¿Querés confirmar el gasto? (si/no): ").lower()
 
-        if confirmar in ["si", "sí", "dale", "ok", "confirmo"]:
+        if es_confirmacion(confirmar):
             for emp in datos:
                 if emp["legajo"] == empleado["legajo"]:
                     emp[categoria] = "0"
@@ -196,6 +231,8 @@ nombre = empleado["nombre"]
 print(f"\n🤖 ¿En qué puedo ayudarte hoy, {nombre}?")
 
 # LOOP PRINCIPAL
+esperando_categoria = False
+
 while True:
     mensaje = input(f"\n{nombre}: ")
 
@@ -203,6 +240,18 @@ while True:
         procesar_despedida(nombre)
         break
 
+    # Si estamos esperando categoría, NO analizamos intención
+    if esperando_categoria:
+        categoria = extraer_categoria(mensaje)
+
+        if categoria is None:
+            print("❌ Esa categoría no existe. Probá con viaticos, comida, transporte o insumos.")
+        else:
+            procesar_consulta_fondos(mensaje, empleado)
+            esperando_categoria = False  # volvemos al modo normal
+        continue
+
+    # Detectar intención normalmente
     intencion = detectar_intencion(mensaje)
 
     if intencion == "saludo":
@@ -213,7 +262,8 @@ while True:
         break
 
     elif intencion == "consultar_fondos":
-        procesar_consulta_fondos(mensaje, empleado)
+        print("🤖 ¿De qué categoría querés saber el fondo? (viaticos, comida, transporte, insumos)")
+        esperando_categoria = True
 
     elif intencion == "cargar_gasto":
         procesar_carga_gasto(mensaje, empleado, datos)
