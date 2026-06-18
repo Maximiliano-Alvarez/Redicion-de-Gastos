@@ -117,19 +117,37 @@ def procesar_carga_gasto(mensaje, empleado, datos):
             return
 
     fondo_actual = float(empleado[categoria])
+    fondo_restante = fondo_actual - monto
+
     print(f"💰 Fondos disponibles en {categoria}: ${fondo_actual}")
 
-    if monto <= fondo_actual:
-        print("✔ Gasto aprobado.")
+    # CASO 1 — Puede hacer el gasto y le queda dinero
+    if fondo_restante > 0:
+        print(f"✔ {empleado['nombre']}, podés hacer este gasto.")
+        print(f"💵 Si lo hacés, te van a quedar ${fondo_restante} en {categoria}.")
+        
         # Actualizar CSV
         for emp in datos:
             if emp["legajo"] == empleado["legajo"]:
-                emp[categoria] = str(fondo_actual - monto)
+                emp[categoria] = str(fondo_restante)
         guardar_datos(datos)
-        empleado[categoria] = str(fondo_actual - monto)
-        print(f"💵 Nuevo fondo disponible en {categoria}: ${fondo_actual - monto}")
+        empleado[categoria] = str(fondo_restante)
+
+    # CASO 2 — Puede hacer el gasto pero le queda EXACTAMENTE 0
+    elif fondo_restante == 0:
+        print(f"⚠ {empleado['nombre']}, podés hacer el gasto, pero te quedarías SIN fondos en {categoria}.")
+        
+        # Actualizar CSV
+        for emp in datos:
+            if emp["legajo"] == empleado["legajo"]:
+                emp[categoria] = "0"
+        guardar_datos(datos)
+        empleado[categoria] = "0"
+
+    # CASO 3 — No puede hacer el gasto
     else:
-        print("❌ No hay fondos suficientes para este gasto.")
+        print(f"❌ {empleado['nombre']}, no podés hacer este gasto.")
+        print(f"Te faltan ${abs(fondo_restante)} para poder cubrirlo.")
 
 # ============================================================
 #   EJECUCIÓN DIRECTA DEL CHATBOT
