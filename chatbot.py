@@ -28,15 +28,24 @@ def limpiar_texto(texto):
 def detectar_intencion(texto):
     texto = limpiar_texto(texto)
 
-    if any(p in texto for p in ["cargar gasto", "registrar gasto", "tengo un gasto", "quiero cargar"]):
+    # Intenciones de carga de gasto
+    if any(p in texto for p in [
+        "cargar gasto", "registrar gasto", "tengo un gasto", "quiero cargar",
+        "puedo gastar", "me alcanza", "si gasto", "quiero gastar"
+    ]):
         return "cargar_gasto"
 
-    if any(p in texto for p in ["cuanto tengo", "fondos", "saldo", "cuanto me queda", "ver fondos"]):
+    # Intenciones de consulta de fondos
+    if any(p in texto for p in [
+        "cuanto tengo", "fondos", "saldo", "cuanto me queda", "ver fondos"
+    ]):
         return "consultar_fondos"
 
+    # Saludos
     if any(p in texto for p in ["hola", "buenas", "hey", "que tal"]):
         return "saludo"
 
+    # Despedidas
     if any(p in texto for p in ["adios", "chau", "nos vemos", "hasta luego"]):
         return "despedida"
 
