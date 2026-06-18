@@ -133,30 +133,38 @@ def procesar_carga_gasto(mensaje, empleado, datos):
     # CASO 1 — Puede hacer el gasto y le queda dinero
     if fondo_restante > 0:
         print(f"✔ {empleado['nombre']}, podés hacer este gasto.")
-        print(f"💵 Si lo hacés, te van a quedar ${fondo_restante} en {categoria}.")
-        
-        # Actualizar CSV
-        for emp in datos:
-            if emp["legajo"] == empleado["legajo"]:
-                emp[categoria] = str(fondo_restante)
-        guardar_datos(datos)
-        empleado[categoria] = str(fondo_restante)
+        print(f"💵 Si lo hacés, te van a quedar ${fondo_restante}.")
+        confirmar = input("🤖 ¿Querés confirmar el gasto? (si/no): ").lower()
 
-    # CASO 2 — Puede hacer el gasto pero le queda EXACTAMENTE 0
+        if confirmar in ["si", "sí", "dale", "ok", "confirmo"]:
+            for emp in datos:
+                if emp["legajo"] == empleado["legajo"]:
+                    emp[categoria] = str(fondo_restante)
+            guardar_datos(datos)
+            empleado[categoria] = str(fondo_restante)
+            print("✔ Gasto registrado correctamente.")
+        else:
+            print("❌ Gasto cancelado.")
+
+    # CASO 2 — Puede hacer el gasto pero queda en cero
     elif fondo_restante == 0:
-        print(f"⚠ {empleado['nombre']}, podés hacer el gasto, pero te quedarías SIN fondos en {categoria}.")
-        
-        # Actualizar CSV
-        for emp in datos:
-            if emp["legajo"] == empleado["legajo"]:
-                emp[categoria] = "0"
-        guardar_datos(datos)
-        empleado[categoria] = "0"
+        print(f"⚠ {empleado['nombre']}, podés hacer el gasto, pero te quedarías SIN fondos.")
+        confirmar = input("🤖 ¿Querés confirmar el gasto? (si/no): ").lower()
+
+        if confirmar in ["si", "sí", "dale", "ok", "confirmo"]:
+            for emp in datos:
+                if emp["legajo"] == empleado["legajo"]:
+                    emp[categoria] = "0"
+            guardar_datos(datos)
+            empleado[categoria] = "0"
+            print("✔ Gasto registrado. Te quedaste sin fondos.")
+        else:
+            print("❌ Gasto cancelado.")
 
     # CASO 3 — No puede hacer el gasto
     else:
         print(f"❌ {empleado['nombre']}, no podés hacer este gasto.")
-        print(f"Te faltan ${abs(fondo_restante)} para poder cubrirlo.")
+        print(f"Te faltarían ${abs(fondo_restante)} para poder cubrirlo.")
 
 # ============================================================
 #   EJECUCIÓN DIRECTA DEL CHATBOT
