@@ -109,9 +109,9 @@ Estructura modular basada en funciones
 Código
 chatbot-para-OE/
 │
+├──files/(agregado de imagenes y pdfs)
 ├── empleados.csv
 ├── chatbot.py
-├── funciones.py
 └── README.md
 🚀 Cómo ejecutar el proyecto
 Clonar el repositorio
